@@ -14,7 +14,7 @@ body {
   position: fixed;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(var(--rs, 1));
   width: 900px;
   height: 900px;
   perspective: 2000px;
@@ -23,7 +23,7 @@ body {
 }
 
 .scene.intro {
-  transform: translate(-50%, -50%) scale(2.8);
+  transform: translate(-50%, -50%) scale(calc(2.8 * var(--rs, 1)));
 }
 
 .tilt {
@@ -202,8 +202,11 @@ body {
   transform: translateX(-50%);
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 10px;
   z-index: 10;
+  max-width: 94vw;
 }
 
 .tone-buttons button {
@@ -216,4 +219,20 @@ body {
   font-weight: 400;
   cursor: pointer;
   white-space: nowrap;
+}
+
+/* 작은 화면(휴대폰)에서는 톤 버튼을 좁게 줄여 한 줄에 다 들어오게 한다. */
+@media (max-width: 480px) {
+  .tone-buttons {
+    top: 16px;
+    gap: 4px;
+  }
+  .tone-buttons button {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+  .back-button {
+    top: 16px !important;
+    left: 16px !important;
+  }
 }

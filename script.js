@@ -1,4 +1,15 @@
 const scene = document.querySelector('.scene');
+
+// 900px 기준으로 설계된 모빌을 화면 크기에 맞춰 통째로 축소/확대한다(모바일 반응형 대응).
+const SCENE_DESIGN_SIZE = 900;
+function updateResponsiveScale() {
+  const viewportMin = Math.min(window.innerWidth, window.innerHeight);
+  const scale = Math.min(1, (viewportMin * 0.92) / SCENE_DESIGN_SIZE);
+  scene.style.setProperty('--rs', scale.toFixed(4));
+}
+updateResponsiveScale();
+window.addEventListener('resize', updateResponsiveScale);
+
 scene.classList.add('intro');
 let introSpeed = true;
 requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -45,7 +56,7 @@ const colors = [
 const count = colors.length;
 
 // 모든 개체를 씨글래스/자갈처럼 하나하나 다른 유기적인 돌멩이 모양으로 그린다.
-const SHAPE_BASE_SIZE = 60;
+const SHAPE_BASE_SIZE = 52;
 
 function seeded(i) {
   const x = Math.sin(i * 12.9898) * 43758.5453
@@ -270,6 +281,7 @@ let currentPalette = [];
 let currentPaletteIndex = 0;
 
 const backButton = document.createElement('button');
+backButton.className = 'back-button';
 backButton.textContent = '← Back';
 backButton.style.position = 'fixed';
 backButton.style.top = '28px';
