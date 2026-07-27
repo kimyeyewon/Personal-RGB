@@ -6,7 +6,7 @@ body {
   min-height: 100vh;
   background: var(--bg);
   overflow: hidden;
-  font-family: 'Bitcount Grid Double', 'Jost', 'Geist Pixel', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'EB Garamond', 'Bitcount Grid Double', 'Jost', 'Geist Pixel', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-weight: 300;
 }
 
@@ -24,6 +24,13 @@ body {
 
 .scene.intro {
   transform: translate(-50%, -50%) scale(calc(2.8 * var(--rs, 1)));
+}
+
+/* 데스크톱(가로가 세로보다 넓은 화면)에서는 모빌을 살짝 아래로 낮춘다. */
+@media (min-aspect-ratio: 1/1) {
+  .scene {
+    top: 53%;
+  }
 }
 
 .tilt {
@@ -62,6 +69,8 @@ body {
   width: 0;
   height: 0;
   transform-style: preserve-3d;
+  /* 화면 크기가 바뀔 때 개체 위치가 뚝뚝 끊기지 않고 부드럽게 이어지도록. */
+  transition: transform 0.25s ease-out;
 }
 
 .card {
@@ -198,41 +207,41 @@ body {
 .tone-buttons {
   position: fixed;
   top: 36px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 16px;
+  right: 16px;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   justify-content: center;
-  gap: 10px;
+  gap: clamp(2px, 0.6vw, 10px);
   z-index: 10;
-  max-width: 94vw;
+  /* left/right를 고정폭으로 둬서 화면 크기와 무관하게 항상 좌우 16px 여백이 보장된다. */
+  /* 인트로(확대→축소) 동안 겹치지 않도록 숨겨뒀다가 script.js에서 끝나면 opacity:1로 되돌린다. */
+  opacity: 0;
+  transition: opacity 0.6s ease;
 }
 
 .tone-buttons button {
   background: transparent;
   border: none;
   color: #111111;
-  padding: 8px 16px;
+  padding: clamp(4px, 1vw, 8px) clamp(6px, 1.6vw, 16px);
   border-radius: 999px;
-  font-size: 13px;
+  /* vw 계수를 낮춰 휴대폰 너비 전반에서 실제로 최솟값(8px) 근처를 쓰도록 한다. */
+  font-size: clamp(8px, 2vw, 13px);
   font-weight: 400;
   cursor: pointer;
   white-space: nowrap;
 }
 
-/* 작은 화면(휴대폰)에서는 톤 버튼을 좁게 줄여 한 줄에 다 들어오게 한다. */
+/* 작은 화면(휴대폰)에서는 톤 버튼을 위로 살짝 올린다(글자 크기는 clamp가 처리). */
 @media (max-width: 480px) {
   .tone-buttons {
     top: 16px;
-    gap: 4px;
-  }
-  .tone-buttons button {
-    padding: 6px 8px;
-    font-size: 11px;
   }
   .back-button {
     top: 16px !important;
     left: 16px !important;
+    font-size: 11px !important;
+    padding: 6px 12px !important;
   }
 }

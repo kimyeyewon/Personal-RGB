@@ -1,14 +1,83 @@
 const scene = document.querySelector('.scene');
 
-// 900px 기준으로 설계된 모빌을 화면 크기에 맞춰 통째로 축소/확대한다(모바일 반응형 대응).
+// 900px 기준으로 설계된 모빌을 화면 크기에 맞춰 축소/확대한다(반응형 대응).
+// 개체 자체가 눌리지 않도록 가로세로 항상 같은 비율(uniform)로만 축소한다.
+// 모바일(세로 화면)에서는 화면을 덜 채워서 가로 여백을 확실히 남긴다.
 const SCENE_DESIGN_SIZE = 900;
+const RESPONSIVE_FILL_RATIO = 0.8;
+const MOBILE_RESPONSIVE_FILL_RATIO = 1.3;
+let currentResponsiveScale = 1;
 function updateResponsiveScale() {
-  const viewportMin = Math.min(window.innerWidth, window.innerHeight);
-  const scale = Math.min(1, (viewportMin * 0.92) / SCENE_DESIGN_SIZE);
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const fillRatio = w < h ? MOBILE_RESPONSIVE_FILL_RATIO : RESPONSIVE_FILL_RATIO;
+  const scale = Math.min(1, (Math.min(w, h) * fillRatio) / SCENE_DESIGN_SIZE);
+  currentResponsiveScale = scale;
   scene.style.setProperty('--rs', scale.toFixed(4));
 }
 updateResponsiveScale();
-window.addEventListener('resize', updateResponsiveScale);
+
+// 화면 비율(가로/세로)에 맞춰 개체들의 "배치 위치"만 재구성한다(개체 자체 크기/모양은 그대로).
+// - 데스크톱(가로 화면): 세로 퍼짐이 너무 좁아지지 않도록 축소 폭에 하한을 둔다.
+// - 모바일(세로 화면): 세로 퍼짐을 크게 늘리되, 상단/하단에 여백이 남도록 살짝 덜 채운다.
+const viewportAspect = window.innerWidth / window.innerHeight; // 1보다 작으면 세로가 더 긴 화면
+const isPortraitViewport = viewportAspect < 1;
+
+// 모바일에서 위아래 여백으로 남겨둘 비율(퍼센트 기반이라 화면 크기가 바뀌어도 항상 비율로 유지된다).
+const MOBILE_VERTICAL_MARGIN_RATIO = 0.86;
+// 모바일에서 개체들이 더 뭉쳐 보이도록 가로/세로 퍼짐을 한 번 더 줄이는 배율.
+const MOBILE_COHESION_FACTOR = 0.72;
+
+function computeSpreadFactors() {
+  const aspect = window.innerWidth / window.innerHeight;
+  if (aspect < 1) {
+    const aspectClamped = Math.max(0.4, aspect);
+    const h = Math.max(0.25, Math.sqrt(aspectClamped)) * MOBILE_COHESION_FACTOR;
+    // 상단 버튼 아래부터 화면 하단 가까이까지 채우되, 위아래 여백만큼은 덜 채운다.
+    const v = Math.min(5, Math.sqrt(1 / aspectClamped) * 3) * MOBILE_VERTICAL_MARGIN_RATIO * MOBILE_COHESION_FACTOR;
+    return { horizontalSpreadFactor: h, verticalSpreadFactor: v };
+  }
+  const aspectClamped = Math.min(1.8, aspect);
+  // 가로는 더 좁혀서 좌우 여백을 넓히고, 세로는 더 늘려서 간격을 넓힌다.
+  const h = Math.sqrt(aspectClamped) * 0.8;
+  const v = Math.max(1.15, Math.sqrt(1 / aspectClamped) * 1.2);
+  return { horizontalSpreadFactor: h, verticalSpreadFactor: v };
+}
+
+function computeGeometryConstants(spread) {
+  return {
+    BASE_RADIUS: 400 * MOBILE_SCALE * spread.horizontalSpreadFactor,
+    RADIUS_VARIANCE: 220 * MOBILE_SCALE * spread.horizontalSpreadFactor,
+    HEIGHT_RANGE: 320 * MOBILE_SCALE * 0.9 * spread.verticalSpreadFactor,
+  };
+}
+
+let { horizontalSpreadFactor, verticalSpreadFactor } = computeSpreadFactors();
+
+const toneButtonsEl = document.querySelector('.tone-buttons');
+
+// 개체가 화면 밖으로 넘어가거나 상단 톤 버튼 텍스트 영역까지 올라오지 않도록,
+// 위/아래로 이동 가능한 최대 폭(디자인 단위)을 화면 크기에 맞춰 항상 다시 계산해서 못박아 둔다.
+function computeVerticalYOffsetLimits() {
+  const viewportH = window.innerHeight;
+  const centerY = viewportH / 2;
+  const topRect = toneButtonsEl ? toneButtonsEl.getBoundingClientRect() : null;
+  const topSafePx = (topRect && topRect.height > 0 ? topRect.bottom : 60) + 20; // 버튼 아래 + 여유
+  const bottomSafePx = 28; // 화면 하단 여백
+
+  // 원근 투영 때문에 카메라에 가까운 개체는 같은 yOffset이라도 화면에서 더 크게 움직여 보이므로
+  // 넉넉한 안전 계수를 곱해 어떤 경우에도 여백을 넘지 않게 한다.
+  const SAFETY = 0.78;
+  const rs = Math.max(0.05, currentResponsiveScale);
+
+  const maxUp = Math.max(30, ((centerY - topSafePx) / rs) * SAFETY);
+  const maxDown = Math.max(30, ((viewportH - centerY - bottomSafePx) / rs) * SAFETY);
+  return { maxUp, maxDown };
+}
+
+function clampYOffset(yOffset, limits) {
+  return Math.max(-limits.maxUp, Math.min(limits.maxDown, yOffset));
+}
 
 scene.classList.add('intro');
 let introSpeed = true;
@@ -16,9 +85,12 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
   scene.classList.remove('intro');
 }));
 
+// 인트로(확대→축소) 동안에는 상단 톤 버튼과 겹치지 않도록 숨겨뒀다가,
+// 인트로가 끝나는 시점에 자연스럽게 나타나게 한다.
 setTimeout(() => {
   introSpeed = false;
   braking = true;
+  if (toneButtonsEl) toneButtonsEl.style.opacity = '1';
 }, 1500);
 
 const stage = document.getElementById('stage');
@@ -56,7 +128,8 @@ const colors = [
 const count = colors.length;
 
 // 모든 개체를 씨글래스/자갈처럼 하나하나 다른 유기적인 돌멩이 모양으로 그린다.
-const SHAPE_BASE_SIZE = 52;
+// 데스크톱에서는 화면이 넓은 만큼 개체 크기를 조금 키운다.
+const SHAPE_BASE_SIZE = isPortraitViewport ? 60 : 72;
 
 function seeded(i) {
   const x = Math.sin(i * 12.9898) * 43758.5453
@@ -65,14 +138,17 @@ function seeded(i) {
 }
 
 // 모빌 전체 크기(반지름/높이 퍼짐)를 줄이는 배율.
+// 화면 비율(horizontalSpreadFactor/verticalSpreadFactor)에 맞춰 가로/세로 퍼짐만 재분배한다.
 const MOBILE_SCALE = 1.15;
-const BASE_RADIUS = 400 * MOBILE_SCALE;
-const RADIUS_VARIANCE = 220 * MOBILE_SCALE;
-const HEIGHT_RANGE = 320 * MOBILE_SCALE * 0.9;
+let { BASE_RADIUS, RADIUS_VARIANCE, HEIGHT_RANGE } = computeGeometryConstants({
+  horizontalSpreadFactor,
+  verticalSpreadFactor,
+});
 
 // 8개의 서로 다른 코너 반경(border-radius)을 섞어 완벽하지 않은 돌멩이 윤곽을 만든다.
+// 하한을 높게 잡아(45%) 뾰족하게 각진 모서리가 생기지 않도록 한다.
 function pebbleBorderRadius(seedBase) {
-  const pick = (offset) => Math.round(30 + seeded(seedBase + offset) * 40); // 30~70%
+  const pick = (offset) => Math.round(45 + seeded(seedBase + offset) * 25); // 45~70%
   return `${pick(1)}% ${pick(2)}% ${pick(3)}% ${pick(4)}% / ${pick(5)}% ${pick(6)}% ${pick(7)}% ${pick(8)}%`;
 }
 
@@ -92,13 +168,14 @@ function createCard(color, w, h, borderRadius, hoverTwistDeg) {
   card.style.borderRadius = borderRadius;
   card.style.setProperty('--hover-twist', `${hoverTwistDeg}deg`);
 
-  // 돌멩이 내부는 방사형 그라데이션으로 투명도를 주되, 모양과 색이 잘 보이도록 진하게 유지한다.
+  // 내부 0~60%는 60% 불투명도로 평평하게 유지하다가, 60%~외부(100%)에서 0%(완전 투명)까지 서서히 빠진다.
   const faceStyle =
-    `background: radial-gradient(circle, ${hexToRgba(color, 0.9)} 0%, ${hexToRgba(color, 0.8)} 100%);`;
+    `background: radial-gradient(circle, ${hexToRgba(color, 0.6)} 0%, ${hexToRgba(color, 0.6)} 60%, ${hexToRgba(color, 0)} 100%);`;
 
-  // 뒤에 같은 모양·같은 색으로 거리 0인 그림자(글로우)를 깔아 은은하게 번지는 느낌을 준다.
-  const glowSize = Math.max(w, h) * 0.35;
-  card.style.boxShadow = `0 0 ${glowSize.toFixed(1)}px ${hexToRgba(color, 0.55)}`;
+  // 뒤에 같은 모양·같은 색으로 거리 0인 그림자(글로우)를 더 넓고 흐릿하게 깔아 은은하게 번지게 한다.
+  // (깊이에 따른 opacity/blur가 이미 뒤쪽 개체는 흐리게 만들어주므로, 화면 앞쪽 개체일수록 더 진하게 보인다.)
+  const glowSize = Math.max(w, h) * 0.7;
+  card.style.boxShadow = `0 0 ${glowSize.toFixed(1)}px ${hexToRgba(color, 0.8)}`;
 
   card.innerHTML = `
     <div class="card-front" style="${faceStyle}"></div>
@@ -111,12 +188,13 @@ function createCard(color, w, h, borderRadius, hoverTwistDeg) {
   return card;
 }
 
-function addObject(baseAngle, radius, yOffset, card, section) {
+function addObject(baseAngle, radius, yOffset, card, section, seedBase) {
   const pivot = document.createElement('div');
   pivot.className = 'pivot';
   pivot.dataset.baseAngle = baseAngle;
   pivot.dataset.radius = radius;
   pivot.dataset.section = section;
+  pivot.dataset.seedBase = seedBase;
 
   const arm = document.createElement('div');
   arm.className = 'arm';
@@ -127,8 +205,49 @@ function addObject(baseAngle, radius, yOffset, card, section) {
   stage.appendChild(pivot);
 }
 
+// 화면 크기가 바뀔 때마다(리사이즈/회전) 개체들의 반지름·높이 퍼짐을 현재 화면 비율에 맞게
+// 다시 계산해서 위치만 부드럽게 재배치한다(모양·크기는 그대로).
+function updateObjectPositions() {
+  const spread = computeSpreadFactors();
+  horizontalSpreadFactor = spread.horizontalSpreadFactor;
+  verticalSpreadFactor = spread.verticalSpreadFactor;
+  ({ BASE_RADIUS, RADIUS_VARIANCE, HEIGHT_RANGE } = computeGeometryConstants(spread));
+
+  const yLimits = computeVerticalYOffsetLimits();
+
+  stage.querySelectorAll('.pivot').forEach((pivot) => {
+    const seedBase = parseFloat(pivot.dataset.seedBase);
+    const radiusSeed = seeded(seedBase + 53);
+    const radius = BASE_RADIUS + (radiusSeed - 0.5) * RADIUS_VARIANCE;
+
+    const isOuterLayer = radiusSeed > 0.66;
+    const heightScale = isOuterLayer ? 0.35 : 1;
+    const rawYOffset =
+      ((seeded(seedBase) - 0.5) * HEIGHT_RANGE +
+       (seeded(seedBase + 137) - 0.5) * (HEIGHT_RANGE * 0.4)) * heightScale;
+    const yOffset = clampYOffset(rawYOffset, yLimits);
+
+    pivot.dataset.radius = radius;
+    const arm = pivot.querySelector('.arm');
+    if (arm) arm.style.transform = `translateZ(${radius}px) translateY(${yOffset}px)`;
+  });
+}
+
+// 리사이즈 중 과도한 연산을 피하면서도 실시간으로 여백/배치가 계속 따라오도록 rAF로 묶는다.
+let responsiveUpdateRAF = null;
+function scheduleResponsiveUpdate() {
+  if (responsiveUpdateRAF) return;
+  responsiveUpdateRAF = requestAnimationFrame(() => {
+    responsiveUpdateRAF = null;
+    updateResponsiveScale();
+    updateObjectPositions();
+  });
+}
+window.addEventListener('resize', scheduleResponsiveUpdate);
+
 // 색상 하나당 OBJECTS_PER_COLOR개의 개체를 만들고, 모양은 SHAPES 풀에서 골고루 순환시킨다.
-const OBJECTS_PER_COLOR = 3;
+const OBJECTS_PER_COLOR = 2;
+const initialYLimits = computeVerticalYOffsetLimits();
 
 for (let i = 0; i < count; i++) {
   for (let k = 0; k < OBJECTS_PER_COLOR; k++) {
@@ -140,9 +259,10 @@ for (let i = 0; i < count; i++) {
     // 반지름이 가장 큰(가장 겉의) 개체들은 높낮이 퍼짐을 줄이고 크기도 작게.
     const isOuterLayer = radiusSeed > 0.66;
     const heightScale = isOuterLayer ? 0.35 : 1;
-    const yOffset =
+    const rawYOffset =
       ((seeded(seedBase) - 0.5) * HEIGHT_RANGE +
        (seeded(seedBase + 137) - 0.5) * (HEIGHT_RANGE * 0.4)) * heightScale;
+    const yOffset = clampYOffset(rawYOffset, initialYLimits);
 
     const sizeJitter = 0.55 + seeded(seedBase + 71) * 1.0; // 0.55~1.55(평균은 이전과 동일): 편차 폭만 넓힘
     const outerSizeScale = isOuterLayer ? 0.65 : 1;
@@ -159,7 +279,7 @@ for (let i = 0; i < count; i++) {
 
     const card = createCard(colors[i], w, h, borderRadius, hoverTwistDeg);
     const section = Math.floor(i / (count / 4));
-    addObject(baseAngle, radius, yOffset, card, section);
+    addObject(baseAngle, radius, yOffset, card, section, seedBase);
   }
 }
 
@@ -909,6 +1029,72 @@ stage.addEventListener('click', (e) => {
   const card = e.target.closest('.card');
   if (!card) return;
   showColorOverlay(card.dataset.color, e.clientX, e.clientY);
+});
+
+// 개체 자체가 빛나는 게 아니라, 카메라 렌즈 플레어처럼 화면 전체에 빛이 번지는 효과.
+// 호버한 개체 위치 → 화면 중심을 지나 반대편까지 이어지는 선을 따라 옅은 빛 번짐들을 배치한다.
+const lensFlare = document.createElement('div');
+lensFlare.style.position = 'fixed';
+lensFlare.style.inset = '0';
+lensFlare.style.zIndex = '5';
+lensFlare.style.pointerEvents = 'none';
+lensFlare.style.opacity = '0';
+lensFlare.style.transition = 'opacity 0.5s ease';
+lensFlare.style.mixBlendMode = 'screen';
+document.body.appendChild(lensFlare);
+
+// 프리즘에 빛이 반사되듯 무지개 순서(빨-주-노-초-파-보)로 배치한다.
+// 색이 잘 보이도록 채도/불투명도를 높이고 블러는 줄였다.
+const LENS_FLARE_STEPS = [
+  { frac: -0.3, size: 200, blur: 30, color: 'hsla(0, 70%, 78%, 0.24)' },
+  { frac: 0.05, size: 50,  blur: 8,  color: 'hsla(30, 75%, 68%, 0.2)' },
+  { frac: 0.5,  size: 120, blur: 16, color: 'hsla(55, 70%, 70%, 0.17)' },
+  { frac: 0.95, size: 32,  blur: 5,  color: 'hsla(150, 65%, 65%, 0.2)' },
+  { frac: 1.4,  size: 84,  blur: 12, color: 'hsla(210, 70%, 70%, 0.18)' },
+  { frac: 1.85, size: 160, blur: 20, color: 'hsla(280, 65%, 72%, 0.16)' },
+];
+
+const lensFlareEls = LENS_FLARE_STEPS.map((step) => {
+  const el = document.createElement('div');
+  el.style.position = 'absolute';
+  el.style.width = step.size + 'px';
+  el.style.height = step.size + 'px';
+  el.style.borderRadius = '50%';
+  el.style.background = step.color;
+  el.style.filter = `blur(${step.blur}px)`;
+  el.style.transform = 'translate(-50%, -50%)';
+  lensFlare.appendChild(el);
+  return el;
+});
+
+function showLensFlareAt(hx, hy) {
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
+  const mx = 2 * cx - hx; // 화면 중심을 기준으로 개체 반대편 지점
+  const my = 2 * cy - hy;
+
+  LENS_FLARE_STEPS.forEach((step, i) => {
+    lensFlareEls[i].style.left = (hx + (mx - hx) * step.frac) + 'px';
+    lensFlareEls[i].style.top = (hy + (my - hy) * step.frac) + 'px';
+  });
+
+  lensFlare.style.opacity = '1';
+}
+
+function hideLensFlare() {
+  lensFlare.style.opacity = '0';
+}
+
+stage.addEventListener('mouseover', (e) => {
+  const card = e.target.closest('.card');
+  if (!card) return;
+  const rect = card.getBoundingClientRect();
+  showLensFlareAt(rect.left + rect.width / 2, rect.top + rect.height / 2);
+});
+stage.addEventListener('mouseout', (e) => {
+  const card = e.target.closest('.card');
+  if (!card) return;
+  hideLensFlare();
 });
 
 function goToTone(sectionIndex) {
