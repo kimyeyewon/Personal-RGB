@@ -986,7 +986,9 @@ function applyLayout() {
 applyLayout();
 
 // 인트로 동안(약 1.5초, braking이 켜지기 전까지)은 더 빠르게 돌다가, 이후 빠르게 감속해 멈춘다.
-let speed = 5;
+// 모바일/태블릿에서는 전체적으로 조금 더 느리게 돈다.
+const IDLE_SPEED = isLikelyMobile ? 0.06 : 0.1;
+let speed = isLikelyMobile ? 3 : 5;
 let braking = false;
 const brakingRate = 0.92;
 
@@ -994,8 +996,8 @@ function tick() {
   if (!isDragging && (autoRotate || braking)) {
     if (braking) {
       speed *= brakingRate;
-      if (speed < 0.1) {
-        speed = 0.1;
+      if (speed < IDLE_SPEED) {
+        speed = IDLE_SPEED;
       }
     }
     rotationOffset += speed;
@@ -1133,7 +1135,7 @@ function goToTone(sectionIndex) {
 
   setTimeout(() => {
     stage.classList.remove('animating');
-    speed = 0.1;
+    speed = IDLE_SPEED;
     autoRotate = true;
   }, 1200);
 }
