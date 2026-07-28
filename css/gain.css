@@ -106,6 +106,7 @@ body {
   inset: 0;
   background: inherit;
   border-radius: inherit;
+  overflow: hidden;
 }
 
 .card-back {
@@ -113,6 +114,7 @@ body {
   inset: 0;
   background: inherit;
   border-radius: inherit;
+  overflow: hidden;
   transform: rotateY(180deg) translateZ(6px);
   backface-visibility: hidden;
 }
@@ -204,7 +206,11 @@ body {
               opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.card.lit::after {
+/* .card 자체(transform-style: preserve-3d)에 걸면 일부 브라우저(특히 태블릿)에서
+   overflow: hidden 클리핑이 무시돼 발광이 카드 모양 밖 사각형으로 새어 나간다.
+   preserve-3d가 없는 평평한 .card-front/.card-back에 각각 걸어 확실히 클리핑되게 한다. */
+.card.lit .card-front::after,
+.card.lit .card-back::after {
   content: '';
   position: absolute;
   top: 50%;
