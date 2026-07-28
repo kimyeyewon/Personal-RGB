@@ -81,11 +81,11 @@ function clampYOffset(yOffset, limits) {
 
 // 확대→축소는 CSS @keyframes 애니메이션(introZoom)이 담당한다. intro 클래스가 붙어있는
 // 동안 애니메이션이 재생되고, 재생이 끝난 뒤(1.4초) 클래스를 떼면서 마무리한다.
-// 모바일/터치 기기는 200개 개체를 그리는 것만으로도 부담이 커서, 확대 연출(가장 무거운 부분)은
-// 생략하고 바로 제자리 크기로 보여준다 — 최종 모습(정지 상태)은 동일하다.
+// 모바일/태블릿(터치 기기)은 200개 개체를 그리는 것만으로도 부담이 커서, 확대 연출(가장 무거운
+// 부분)은 생략하고 바로 제자리 크기로 보여준다 — 최종 모습(정지 상태)은 동일하다.
 const isLikelyMobile =
   (('ontouchstart' in window) || navigator.maxTouchPoints > 0) &&
-  Math.min(window.innerWidth, window.innerHeight) <= 900;
+  Math.min(window.innerWidth, window.innerHeight) <= 1366;
 if (!isLikelyMobile) {
   scene.classList.add('intro');
 }
