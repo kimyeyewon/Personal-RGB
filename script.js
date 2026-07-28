@@ -81,7 +81,14 @@ function clampYOffset(yOffset, limits) {
 
 // 확대→축소는 CSS @keyframes 애니메이션(introZoom)이 담당한다. intro 클래스가 붙어있는
 // 동안 애니메이션이 재생되고, 재생이 끝난 뒤(1.4초) 클래스를 떼면서 마무리한다.
-scene.classList.add('intro');
+// 모바일/터치 기기는 200개 개체를 그리는 것만으로도 부담이 커서, 확대 연출(가장 무거운 부분)은
+// 생략하고 바로 제자리 크기로 보여준다 — 최종 모습(정지 상태)은 동일하다.
+const isLikelyMobile =
+  (('ontouchstart' in window) || navigator.maxTouchPoints > 0) &&
+  Math.min(window.innerWidth, window.innerHeight) <= 900;
+if (!isLikelyMobile) {
+  scene.classList.add('intro');
+}
 let introSpeed = true;
 // 인트로 동안에는 깊이에 따른 채도/명도 조절을 끄고 원색 그대로 보여준다.
 let introActive = true;
@@ -191,6 +198,10 @@ function createCard(color, w, h, borderRadius, hoverTwistDeg) {
   return card;
 }
 
+// 개체를 하나씩 stage에 바로 붙이면 200개만큼 레이아웃/리플로우가 반복돼 저사양 기기(특히
+// 모바일)에서 초기 로딩이 무거워진다. DocumentFragment에 모아뒀다가 한 번에 붙인다.
+const objectsFragment = document.createDocumentFragment();
+
 function addObject(baseAngle, radius, yOffset, card, section, seedBase) {
   const pivot = document.createElement('div');
   pivot.className = 'pivot';
@@ -205,7 +216,7 @@ function addObject(baseAngle, radius, yOffset, card, section, seedBase) {
 
   arm.appendChild(card);
   pivot.appendChild(arm);
-  stage.appendChild(pivot);
+  objectsFragment.appendChild(pivot);
 }
 
 // 화면 크기가 바뀔 때마다(리사이즈/회전) 개체들의 반지름·높이 퍼짐을 현재 화면 비율에 맞게
@@ -285,6 +296,7 @@ for (let i = 0; i < count; i++) {
     addObject(baseAngle, radius, yOffset, card, section, seedBase);
   }
 }
+stage.appendChild(objectsFragment); // 모아둔 개체를 한 번에 붙여서 리플로우를 한 번으로 줄인다.
 
 function hexToHSL(hex) {
   const h = hex.replace('#', '');
