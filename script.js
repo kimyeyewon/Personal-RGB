@@ -79,16 +79,19 @@ function clampYOffset(yOffset, limits) {
   return Math.max(-limits.maxUp, Math.min(limits.maxDown, yOffset));
 }
 
+// 확대→축소는 CSS @keyframes 애니메이션(introZoom)이 담당한다. intro 클래스가 붙어있는
+// 동안 애니메이션이 재생되고, 재생이 끝난 뒤(1.4초) 클래스를 떼면서 마무리한다.
 scene.classList.add('intro');
 let introSpeed = true;
-requestAnimationFrame(() => requestAnimationFrame(() => {
-  scene.classList.remove('intro');
-}));
+// 인트로 동안에는 깊이에 따른 채도/명도 조절을 끄고 원색 그대로 보여준다.
+let introActive = true;
 
 // 인트로(확대→축소) 동안에는 상단 톤 버튼과 겹치지 않도록 숨겨뒀다가,
 // 인트로가 끝나는 시점에 자연스럽게 나타나게 한다.
 setTimeout(() => {
+  scene.classList.remove('intro');
   introSpeed = false;
+  introActive = false;
   braking = true;
   if (toneButtonsEl) toneButtonsEl.style.opacity = '1';
 }, 1500);
@@ -930,14 +933,15 @@ function applyLayout() {
     const blur = t * MAX_DEPTH_BLUR;
     // 중앙에서 멀어질수록(t 증가) 투명도·채도·명도가 함께 낮아지되, 채도는 더 낮은 바닥까지 떨어진다.
     const opacity = 1 - t * (1 - MIN_DEPTH_OPACITY);
-    let saturation = 1 - t * (1 - MIN_DEPTH_SATURATION);
-    let brightness = 1 - t * (1 - MIN_DEPTH_BRIGHTNESS);
+    let saturation = introActive ? 1 : 1 - t * (1 - MIN_DEPTH_SATURATION);
+    let brightness = introActive ? 1 : 1 - t * (1 - MIN_DEPTH_BRIGHTNESS);
 
     const card = pivot.querySelector('.card');
     if (card) {
       // 한 계열이 딱 정중앙에 왔을 때는 그 계열이 아닌 개체는 채도를 완전히 0으로.
       // 단, 원래 색이 어두우면 회색조가 너무 새까매져 눈에 띄므로 명도가 90% 밑으로 떨어지지 않게 보정한다.
-      if (sectionIsLocked && pivot.dataset.section !== undefined) {
+      // (인트로 동안에는 이 조정도 하지 않는다.)
+      if (!introActive && sectionIsLocked && pivot.dataset.section !== undefined) {
         const pivotSection = parseInt(pivot.dataset.section, 10);
         if (pivotSection !== nearestSection) {
           saturation = 0;
@@ -969,16 +973,17 @@ function applyLayout() {
 
 applyLayout();
 
-let speed = 0.98;
+// 인트로 동안(약 1.5초, braking이 켜지기 전까지)은 더 빠르게 돌다가, 이후 빠르게 감속해 멈춘다.
+let speed = 5;
 let braking = false;
-const brakingRate = 0.98;
+const brakingRate = 0.92;
 
 function tick() {
   if (!isDragging && (autoRotate || braking)) {
     if (braking) {
       speed *= brakingRate;
-      if (speed < 0.005) {
-        speed = 0.005;
+      if (speed < 0.1) {
+        speed = 0.1;
       }
     }
     rotationOffset += speed;
@@ -1116,7 +1121,7 @@ function goToTone(sectionIndex) {
 
   setTimeout(() => {
     stage.classList.remove('animating');
-    speed = 0.005;
+    speed = 0.1;
     autoRotate = true;
   }, 1200);
 }

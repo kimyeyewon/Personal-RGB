@@ -12,25 +12,39 @@ body {
 
 .scene {
   position: fixed;
-  top: 50%;
+  top: var(--rest-top, 50%);
   left: 50%;
   transform: translate(-50%, -50%) scale(var(--rs, 1));
   width: 900px;
   height: 900px;
   perspective: 2000px;
-  transition: transform 1s 0.5s cubic-bezier(0.4, 0, 0.1, 0.2);
   pointer-events: none;
-}
-
-.scene.intro {
-  transform: translate(-50%, -50%) scale(calc(2.8 * var(--rs, 1)));
 }
 
 /* 데스크톱(가로가 세로보다 넓은 화면)에서는 모빌을 살짝 아래로 낮춘다. */
 @media (min-aspect-ratio: 1/1) {
   .scene {
-    top: 53%;
+    --rest-top: 53%;
   }
+}
+
+/* 확대→축소와 "제자리로 내려가기"(top)를 하나의 애니메이션으로 묶어 동시에 재생되게 한다.
+   GPU에서 독립적으로 재생되는 CSS @keyframes라 메인 스레드 작업(회전 등)과도 무관하다. */
+@keyframes introZoom {
+  from {
+    top: 46%;
+    transform: translate(-50%, -50%) scale(var(--rs, 1)) scale(2.4);
+  }
+  to {
+    top: var(--rest-top, 50%);
+    transform: translate(-50%, -50%) scale(var(--rs, 1)) scale(1);
+  }
+}
+
+/* 인트로에는 톤 버튼 텍스트가 아직 안 보이는 상태이므로, 버튼 자리를 비워두지 않고
+   화면 정중앙(약간 더 위)에서 시작해 제자리로 내려온다. */
+.scene.intro {
+  animation: introZoom 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .tilt {
