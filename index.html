@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Personal RGB</title>
 
     <link rel="stylesheet" href="css/gain.css">
+    <link rel="icon" type="image/png" href="personal-rgb-logo.png">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist+Pixel&family=IBM+Plex+Sans+KR&family=Noto+Sans+KR:wght@100..900&family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&family=Jost:ital,wght@0,100..900;1,100..900&family=Bitcount+Grid+Double:wght@100..900&family=EB+Garamond:ital,wght@0,400..800;1,400..800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Geist+Pixel&family=IBM+Plex+Sans+KR&family=Noto+Sans+KR:wght@100..900&family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&family=Jost:ital,wght@0,100..900;1,100..900&family=Bitcount+Grid+Double:wght@100..900&family=EB+Garamond:ital,wght@0,400..800;1,400..800&display=swap" rel="stylesheet">
 
 
 </head>
@@ -33,6 +34,30 @@
   <button onclick="goToTone(3)">Winter Cool</button>
 </div>
 
+<button class="tutorial-button" id="tutorialButton" aria-label="튜토리얼 보기" onclick="openTutorial()">
+  <img src="icon-tutorial.png" alt="" width="15" height="17">
+</button>
+
+<div class="tutorial-overlay" id="tutorialOverlay">
+  <button class="tutorial-back" id="tutorialBack" aria-label="이전 단계로">← 뒤로</button>
+
+  <div class="tutorial-slide active">
+    <p class="tutorial-hint">눌러서 브라우저 탭과 주소창을 숨겨보세요</p>
+    <p class="tutorial-shortcut" id="tutorialShortcut"></p>
+  </div>
+
+  <div class="tutorial-slide">
+    <p class="tutorial-eyebrow">단계 1 · 세팅</p>
+    <h3 class="tutorial-heading">전문 드레이핑 환경 기준</h3>
+    <p class="tutorial-body">전문 컬러 진단에서는 북향 창가의 간접 자연광(직사광선 아님), 무채색 배경, 무표정·노메이크업 상태를 기본 조건으로 합니다. 얼굴에 그림자가 지지 않는 위치에 앉고, 헤어라인은 흰 천이나 헤어밴드로 가려 두피·모발색이 판단에 끼어들지 않게 하세요.</p>
+  </div>
+
+  <div class="tutorial-slide">
+    <p class="tutorial-eyebrow">단계 2 · 1차 드레이핑</p>
+    <h3 class="tutorial-heading">언더톤(Warm/Cool) 판별</h3>
+    <p class="tutorial-body">화면에 골드 계열 색상을 띄운 뒤 화면을 턱선 아래, 쇄골 위치에 얼굴에 닿을 듯 가까이 대세요. 이어서 실버 계열로 전환해 같은 위치에 댑니다. 판별 기준은 '어느 쪽이 예쁜가'가 아니라 피부의 반응입니다: 홍조나 붉은 반점이 도드라지는지, 피부가 누렇게 뜨거나 회색빛으로 가라앉는지, 눈 밑 다크서클이 짙어지거나 옅어지는지를 관찰하세요. 실제 진단에서는 이 대비를 수 초 안에 빠르게 전환하며 즉각적인 변화를 캐치합니다.</p>
+  </div>
+</div>
 
 <script src="script.js"></script>
 

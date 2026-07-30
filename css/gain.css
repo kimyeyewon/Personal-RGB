@@ -1,12 +1,21 @@
 :root { --bg: #ffffff; }
 * { box-sizing: border-box; font-family: inherit; font-weight: inherit; }
 
+/* 스크롤은 되지만 스크롤바는 안 보이게(결과 화면처럼 내용이 길어 스크롤이 필요한 곳에 사용). */
+.no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* 구형 Edge/IE */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
 body {
   margin: 0;
   min-height: 100vh;
   background: var(--bg);
   overflow: hidden;
-  font-family: 'EB Garamond', 'Bitcount Grid Double', 'Jost', 'Geist Pixel', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Space Mono', 'EB Garamond', 'Bitcount Grid Double', 'Jost', 'Geist Pixel', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-weight: 300;
 }
 
@@ -264,4 +273,203 @@ body {
     font-size: 11px !important;
     padding: 6px 12px !important;
   }
+  .tutorial-button {
+    top: 16px !important;
+    right: 16px !important;
+  }
+  .tutorial-back {
+    top: 16px !important;
+    left: 16px !important;
+    font-size: 11px !important;
+    padding: 6px 12px !important;
+  }
+}
+
+.tutorial-button {
+  position: fixed;
+  top: 28px;
+  right: 28px;
+  z-index: 1002;
+  background: transparent;
+  border: none;
+  color: #111111;
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 톤 버튼 텍스트와 마찬가지로 인트로(확대→축소) 동안 숨겨뒀다가, 인트로가
+     끝나는 시점에 자연스럽게 나타나게 한다. */
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+  cursor: pointer;
+}
+
+.tutorial-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tutorial-shortcut {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+}
+
+.tutorial-hint {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.tutorial-slide {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 640px;
+}
+
+.tutorial-slide.active {
+  display: flex;
+}
+
+.tutorial-eyebrow {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.tutorial-heading {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.tutorial-body {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+
+.tutorial-back {
+  position: fixed;
+  top: 28px;
+  left: 28px;
+  z-index: 2001;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* 팔레트에서 색을 확정할 때마다 우측 상단 팔레트 아이콘이 벨이 울리듯 짧게 흔들린다. */
+@keyframes paletteIconBell {
+  0%, 100% { transform: rotate(0deg); }
+  15% { transform: rotate(-18deg); }
+  35% { transform: rotate(14deg); }
+  55% { transform: rotate(-10deg); }
+  75% { transform: rotate(6deg); }
+  90% { transform: rotate(-3deg); }
+}
+
+.bell {
+  animation: paletteIconBell 0.6s ease;
+  transform-origin: 50% 15%;
+}
+
+/* 아이콘 뒤에 깔리는 넓고 연한 발광. box-shadow 대신 실제 원(blur된 원)을 써서
+   각지거나 이상한 모양 없이 매끈하게 퍼지도록 한다. */
+.icon-glow {
+  position: absolute;
+  width: 210px;
+  height: 210px;
+  border-radius: 50%;
+  background: var(--glow-color, rgba(255, 255, 255, 0.55));
+  filter: blur(34px);
+  transform: translate(-50%, -50%) scale(0.6);
+  opacity: 0;
+  pointer-events: none;
+  /* position:absolute인 이 엘리먼트는 음수 z-index를 줘야 일반 흐름 요소인
+     아이콘(SVG)보다 뒤에 그려진다. DOM 순서만으로는 위치가 있는 요소가
+     항상 나중에(위에) 칠해지기 때문. */
+  z-index: -1;
+}
+
+@keyframes iconGlowPulse {
+  0%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  40% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.icon-glow.pulse {
+  animation: iconGlowPulse 0.9s ease;
+}
+
+/* 종합 단계 색 구름: 원 배치 한 주기를 좌우로 이어붙여 두고, -50%(둘째 주기가 보이는
+   지점)에서 0(첫 주기가 보이는 지점)으로 되돌아가듯 흘려서 왼쪽→오른쪽으로 흐르게
+   한다. 두 주기가 완전히 같은 그림이라 이 구간을 반복해도 이음매 없이 이어진다. */
+@keyframes synthesisDrift {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .synthesis-track { animation: none !important; }
+}
+
+/* 팔레트 아이콘을 눌러 확정 색 화면으로 들어갈 때, 아이콘 자리에서 빛이 확 퍼지듯
+   커지면서 투명해지고 그 뒤로 다음 화면이 드러나는 전환 효과. */
+.palette-transition-glow {
+  position: fixed;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.75) 45%, rgba(255, 255, 255, 0) 72%);
+  transform: translate(-50%, -50%) scale(0.6);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 3000;
+  /* 밝은(파스텔) 배경 위에서도 그냥 흰 원으로 뭉개지지 않고 "빛이 밝아진다"는
+     느낌이 나도록 항상 밝게만 더해지는 screen 블렌드를 쓴다. */
+  mix-blend-mode: screen;
+}
+
+@keyframes paletteTransitionBurst {
+  0% { opacity: 0.95; transform: translate(-50%, -50%) scale(0.6); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(48); }
+}
+
+.palette-transition-glow.burst {
+  animation: paletteTransitionBurst 0.75s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
 }
