@@ -273,9 +273,18 @@ body {
     font-size: 11px !important;
     padding: 6px 12px !important;
   }
+  /* 모바일에서는 아이콘 대신 "Tutorial" 텍스트 버튼으로 대체하고(script.js),
+     상단 톤 버튼 줄과 겹치지 않도록 하단 중앙으로 옮긴다. */
   .tutorial-button {
-    top: 16px !important;
-    right: 16px !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: 24px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    /* 상단 톤 버튼 글자와 같은 크기(clamp)를 그대로 쓴다. */
+    font-size: clamp(8px, 2vw, 13px) !important;
+    padding: 6px 12px !important;
+    letter-spacing: 0.02em;
   }
   .tutorial-back {
     top: 16px !important;

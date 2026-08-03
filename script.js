@@ -5,7 +5,7 @@ const scene = document.querySelector('.scene');
 // 모바일(세로 화면)에서는 화면을 덜 채워서 가로 여백을 확실히 남긴다.
 const SCENE_DESIGN_SIZE = 900;
 const RESPONSIVE_FILL_RATIO = 0.8;
-const MOBILE_RESPONSIVE_FILL_RATIO = 1.3;
+const MOBILE_RESPONSIVE_FILL_RATIO = 1.18;
 let currentResponsiveScale = 1;
 function updateResponsiveScale() {
   const w = window.innerWidth;
@@ -14,6 +14,23 @@ function updateResponsiveScale() {
   const scale = Math.min(1, (Math.min(w, h) * fillRatio) / SCENE_DESIGN_SIZE);
   currentResponsiveScale = scale;
   scene.style.setProperty('--rs', scale.toFixed(4));
+
+  // 모바일(세로 화면)에서는 상단 톤 버튼 아래부터 하단 튜토리얼 버튼 위까지의
+  // 정중앙을 기준으로 삼되, 조금 더 위로 올려 보이도록 살짝 띄운다.
+  // (toneButtonsEl/tutorialButtonEl은 이 함수보다 뒤에서 선언되므로 직접 조회한다.)
+  const MOBILE_VERTICAL_NUDGE = 30; // 이 값만큼 위로 더 올린다(px).
+  if (w < h) {
+    const toneEl = document.querySelector('.tone-buttons');
+    const tutEl = document.getElementById('tutorialButton');
+    if (toneEl && tutEl) {
+      const topBound = toneEl.getBoundingClientRect().bottom;
+      const bottomBound = tutEl.getBoundingClientRect().top;
+      const centerY = (topBound + bottomBound) / 2 - MOBILE_VERTICAL_NUDGE;
+      scene.style.setProperty('--rest-top', `${((centerY / h) * 100).toFixed(2)}%`);
+    }
+  } else {
+    scene.style.removeProperty('--rest-top');
+  }
 }
 updateResponsiveScale();
 
@@ -60,7 +77,12 @@ const toneButtonsEl = document.querySelector('.tone-buttons');
 // 위/아래로 이동 가능한 최대 폭(디자인 단위)을 화면 크기에 맞춰 항상 다시 계산해서 못박아 둔다.
 function computeVerticalYOffsetLimits() {
   const viewportH = window.innerHeight;
-  const centerY = viewportH / 2;
+  // 모바일에서는 모빌 자체를 화면 중앙(50%)이 아니라 위/아래 여백에 맞춰 살짝
+  // 옮겨두므로(--rest-top), 그 실제 렌더링 중심을 기준으로 위/아래 여유를
+  // 계산해야 한다. 50%로 고정해두면 실제 중심이 더 위로 올라간 만큼 위쪽으로
+  // 더 움직일 수 있다고 잘못 계산되어 개체들이 상단에 몰려 보인다.
+  const sceneRect = scene.getBoundingClientRect();
+  const centerY = sceneRect.height > 0 ? sceneRect.top + sceneRect.height / 2 : viewportH / 2;
   const topRect = toneButtonsEl ? toneButtonsEl.getBoundingClientRect() : null;
   const topSafePx = (topRect && topRect.height > 0 ? topRect.bottom : 60) + 20; // 버튼 아래 + 여유
   const bottomSafePx = 28; // 화면 하단 여백
@@ -458,6 +480,14 @@ let previousPaletteColor = null;
 // 튜토리얼 아이콘(문서 모양)은 첫 화면(메인 모빌)에서만 보이고, 색을 클릭해 들어간
 // 화면(실전 모드 포함)에서는 숨긴다. 실전 모드에서는 대신 팔레트(확정 색 목록) 아이콘이 그 자리를 대신한다.
 const tutorialButtonEl = document.getElementById('tutorialButton');
+// 모바일에서는 작은 아이콘 대신 "튜토리얼" 텍스트 버튼으로 대체한다(터치로는
+// 아이콘보다 글자가 있는 쪽이 무엇을 누르는 건지 더 분명하다).
+if (isLikelyMobile) {
+  tutorialButtonEl.textContent = 'Tutorial';
+  // 아이콘(작은 정사각형)에서 텍스트(더 넓은 버튼)로 바뀌면 버튼의 실제 세로
+  // 위치/크기가 달라지므로, 모빌 세로 중앙 정렬을 다시 계산한다.
+  updateResponsiveScale();
+}
 
 // 실전 모드에서 체크 표시로 "확정"한 색들의 목록. 세션 동안 계속 쌓인다.
 const confirmedColors = [];
@@ -1023,7 +1053,7 @@ paletteViewButton.style.transition = 'opacity 0.3s ease';
 // 모양만 따와서 배경색(currentColor)을 채운다. 그러면 기존처럼 배경 명도에 따라
 // 흰색/검정으로 자동으로 뒤집히는 대비 효과가 그대로 유지된다.
 paletteViewButton.innerHTML =
-  '<div style="width:15px;height:17px;background-color:currentColor;' +
+  '<div style="width:13px;height:14px;background-color:currentColor;' +
   '-webkit-mask-image:url(\'icon-palette.png\');mask-image:url(\'icon-palette.png\');' +
   '-webkit-mask-size:contain;mask-size:contain;' +
   '-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;' +
