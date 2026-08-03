@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://kimyeyewon.github.io/Personal-RGB/sitemap.xml
+Sitemap: https://personalrgb.github.io/Personal-RGB/sitemap.xml
